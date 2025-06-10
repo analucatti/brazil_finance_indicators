@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:brazil_finance_indicators/services/indicators_service.dart';
+import 'package:iconify_flutter/icons/mdi.dart';
+import 'package:iconify_flutter/iconify_flutter.dart';
 
 class IndicatorsWidget extends StatelessWidget {
   const IndicatorsWidget({super.key});
@@ -10,67 +12,80 @@ class IndicatorsWidget extends StatelessWidget {
     final service = Provider.of<IndicatorsService>(context);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Brazil Economic Indicators',
+            '📊 Indicadores Econômicos',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              letterSpacing: 0.5,
+              color: Colors.black87,
             ),
           ),
           const SizedBox(height: 16),
-          _buildIndicatorRow('SELIC:', service.selic),
-          const SizedBox(height: 8),
-          _buildIndicatorRow('IPCA:', service.ipca),
-          const SizedBox(height: 8),
-          _buildIndicatorRow('IPCA Acumulado no Ano:', service.ipcaAcumulado),
-          const SizedBox(height: 8),
-          _buildIndicatorRow('Dólar (hoje):', service.dolar),
-          if (service.updateDate.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'Updated: ${service.updateDate}',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+          _buildIndicatorRow('SELIC', service.selic, Mdi.chart_line_variant),
+          _buildIndicatorRow('IPCA', service.ipca, Mdi.trending_up),
+          _buildIndicatorRow('IPCA Acumulado', service.ipcaAcumulado, Mdi.chart_bar),
+          _buildIndicatorRow('Dólar Hoje', service.dolar, Mdi.currency_usd),
+
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'Atualizado em: ${service.updateDate}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildIndicatorRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 16, color: Colors.black)),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+  Widget _buildIndicatorRow(String label, String value, String icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Iconify(icon, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
           ),
-        ),
-      ],
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
