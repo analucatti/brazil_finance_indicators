@@ -37,6 +37,7 @@ dependencies:
   intl: ^0.18.1
   iconify_flutter: ^0.0.7
   flutter_overlay_window: ^0.5.0
+  workmanager: ^0.6.0
 
 
 

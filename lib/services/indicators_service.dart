@@ -1,15 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class IndicatorsService with ChangeNotifier {
-  String _selic = 'Loading...';
-  String _ipca = 'Loading...';
-  String _ipcaAcumulado = 'Loading...';
-  String _dolar = 'Loading...';
+  String _selic = 'Carregando...';
+  String _ipca = 'Carregando...';
+  String _ipcaAcumulado = 'Carregando...';
+  String _dolar = 'Carregando...';
   String _updateDate = '';
   Timer? _timer;
 
@@ -26,6 +25,7 @@ class IndicatorsService with ChangeNotifier {
   }
 
   void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(hours: 4), (timer) {
       fetchData();
     });
@@ -33,10 +33,10 @@ class IndicatorsService with ChangeNotifier {
 
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    _selic = prefs.getString('selic') ?? 'Loading...';
-    _ipca = prefs.getString('ipca') ?? 'Loading...';
-    _ipcaAcumulado = prefs.getString('ipcaAcumulado') ?? 'Loading...';
-    _dolar = prefs.getString('dolar') ?? 'Loading...';
+    _selic = prefs.getString('selic') ?? 'Carregando...';
+    _ipca = prefs.getString('ipca') ?? 'Carregando...';
+    _ipcaAcumulado = prefs.getString('ipcaAcumulado') ?? 'Carregando...';
+    _dolar = prefs.getString('dolar') ?? 'Carregando...';
     _updateDate = prefs.getString('updateDate') ?? '';
     notifyListeners();
   }
@@ -52,44 +52,50 @@ class IndicatorsService with ChangeNotifier {
 
   Future<void> fetchData() async {
     try {
-      final selicResponse = await http.get(Uri.parse(
-          'https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json'));
+      final responses = await Future.wait([
+        http.get(Uri.parse('https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json')),
+        http.get(Uri.parse('https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json')),
+        http.get(Uri.parse('https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json')),
+        http.get(Uri.parse('https://economia.awesomeapi.com.br/json/last/USD-BRL')),
+      ]);
 
-      final ipcaResponse = await http.get(Uri.parse(
-          'https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/1?formato=json'));
-
-      final ipcaAcumuladoResponse = await http.get(Uri.parse(
-          'https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json'));
-
-      final dolarResponse = await http.get(Uri.parse(
-          'https://economia.awesomeapi.com.br/json/last/USD-BRL'));
-
-      if (selicResponse.statusCode == 200 &&
-          ipcaResponse.statusCode == 200 &&
-          ipcaAcumuladoResponse.statusCode == 200 &&
-          dolarResponse.statusCode == 200) {
-
-        final selicData = json.decode(selicResponse.body);
-        final ipcaData = json.decode(ipcaResponse.body);
-        final ipcaAcumuladoData = json.decode(ipcaAcumuladoResponse.body);
-        final dolarData = json.decode(dolarResponse.body);
+      if (responses.every((r) => r.statusCode == 200)) {
+        final selicData = json.decode(responses[0].body);
+        final ipcaData = json.decode(responses[1].body);
+        final ipcaAcumuladoData = json.decode(responses[2].body);
+        final dolarData = json.decode(responses[3].body);
 
         _selic = '${double.parse(selicData[0]['valor']).toStringAsFixed(2)}%';
         _ipca = '${double.parse(ipcaData[0]['valor']).toStringAsFixed(2)}%';
         _ipcaAcumulado = '${double.parse(ipcaAcumuladoData[0]['valor']).toStringAsFixed(2)}%';
         _dolar = 'R\$ ${double.parse(dolarData['USDBRL']['bid']).toStringAsFixed(2)}';
-        _updateDate = selicData[0]['data'];
+        _updateDate = _formatDate(selicData[0]['data']);
 
         await saveData();
         notifyListeners();
+      } else {
+        _setErrorState();
       }
     } catch (e) {
-      _selic = 'Error';
-      _ipca = 'Error';
-      _ipcaAcumulado = 'Error';
-      _dolar = 'Error';
-      _updateDate = 'Update failed';
-      notifyListeners();
+      _setErrorState();
+    }
+  }
+
+  void _setErrorState() {
+    _selic = 'Erro';
+    _ipca = 'Erro';
+    _ipcaAcumulado = 'Erro';
+    _dolar = 'Erro';
+    _updateDate = 'Falha na atualização';
+    notifyListeners();
+  }
+
+  String _formatDate(String date) {
+    try {
+      final parts = date.split('-');
+      return '${parts[2]}/${parts[1]}/${parts[0]}';
+    } catch (e) {
+      return date;
     }
   }
 

@@ -1,11 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
-
-import 'package:brazil_finance_indicators/widgets/indicators_widget.dart';
 import 'package:brazil_finance_indicators/services/indicators_service.dart';
+import 'package:brazil_finance_indicators/widgets/indicators_widget.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(
     MultiProvider(
       providers: [
@@ -34,26 +35,71 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  Future<void> _showFloatingWidget(BuildContext context) async {
-    bool permission = await FlutterOverlayWindow.isPermissionGranted();
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
 
-    if (!permission) {
-      await FlutterOverlayWindow.requestPermission();
-    }
+class _HomePageState extends State<HomePage> {
+  bool _isOverlayActive = false;
 
-    if (await FlutterOverlayWindow.isPermissionGranted()) {
-      FlutterOverlayWindow.showOverlay(
-        height: 250,
-        width: 220,
-        alignment: OverlayAlignment.centerRight,
-        enableDrag: true,
-      );
-    } else {
+  @override
+  void initState() {
+    super.initState();
+    _checkOverlayStatus();
+  }
+
+  Future<void> _checkOverlayStatus() async {
+    final status = await FlutterOverlayWindow.isActive();
+    setState(() {
+      _isOverlayActive = status;
+    });
+  }
+
+  Future<void> _toggleFloatingWidget() async {
+    try {
+      if (_isOverlayActive) {
+        await FlutterOverlayWindow.closeOverlay();
+        setState(() => _isOverlayActive = false);
+        return;
+      }
+
+      // Verificação de permissão corrigida
+      bool hasPermission =
+          await FlutterOverlayWindow.isPermissionGranted() ?? false;
+
+      if (!hasPermission) {
+        hasPermission = await FlutterOverlayWindow.requestPermission() ?? false;
+      }
+
+      if (hasPermission) {
+        await FlutterOverlayWindow.showOverlay(
+          height: 250,
+          width: 220,
+          alignment: OverlayAlignment.centerRight,
+          enableDrag: true,
+          flag: OverlayFlag.defaultFlag,
+        );
+
+        setState(() => _isOverlayActive = true);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permissão negada para exibir overlay'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permissão negada para overlay.')),
+        SnackBar(
+          content: Text('Erro: ${e.toString()}'),
+          duration: const Duration(seconds: 2),
+        ),
       );
     }
   }
@@ -62,16 +108,20 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Brazil Economic Indicators'),
+        title: const Text('Indicadores Econômicos do Brasil'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => Provider.of<IndicatorsService>(context, listen: false).fetchData(),
+            tooltip: 'Atualizar dados',
+            onPressed: () => Provider.of<IndicatorsService>(
+              context,
+              listen: false,
+            ).fetchData(),
           ),
           IconButton(
-            icon: const Icon(Icons.open_in_new),
-            tooltip: 'Mostrar flutuante',
-            onPressed: () => _showFloatingWidget(context),
+            icon: Icon(_isOverlayActive ? Icons.close : Icons.open_in_new),
+            tooltip: _isOverlayActive ? 'Fechar overlay' : 'Abrir overlay',
+            onPressed: _toggleFloatingWidget,
           ),
         ],
       ),
@@ -82,7 +132,13 @@ class HomePage extends StatelessWidget {
             children: const [
               IndicatorsWidget(),
               SizedBox(height: 20),
-              Text('Data updates automatically every 4 hours'),
+              Text('Os dados são atualizados automaticamente a cada 4 horas'),
+              SizedBox(height: 10),
+              Text(
+                'Toque no ícone de overlay para exibir os indicadores\nem uma janela flutuante',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ],
           ),
         ),

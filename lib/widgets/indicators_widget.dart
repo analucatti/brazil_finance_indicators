@@ -42,7 +42,6 @@ class IndicatorsWidget extends StatelessWidget {
           _buildIndicatorRow('IPCA', service.ipca, Mdi.trending_up),
           _buildIndicatorRow('IPCA Acumulado', service.ipcaAcumulado, Mdi.chart_bar),
           _buildIndicatorRow('Dólar Hoje', service.dolar, Mdi.currency_usd),
-
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerRight,
@@ -64,7 +63,7 @@ class IndicatorsWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Iconify(icon, size: 20),
+          Iconify(icon, size: 20, color: Colors.green),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -78,14 +77,20 @@ class IndicatorsWidget extends StatelessWidget {
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: _getValueColor(value),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Color _getValueColor(String value) {
+    if (value.contains('Erro')) return Colors.red;
+    if (value.contains('Loading')) return Colors.grey;
+    return Colors.black;
   }
 }

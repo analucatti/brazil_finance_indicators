@@ -5,6 +5,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22")
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
+}
 android {
     namespace = "com.lucatti.brazil_finance_indicators"
     compileSdk = flutter.compileSdkVersion
